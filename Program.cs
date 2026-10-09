@@ -1,11 +1,11 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
 
+namespace GoogleDocsLauncher;
+
 internal static class Program {
-    private const string GoogleDriveRoot = @"C:\Users\username\My Drive";
     private const uint CMF_NORMAL = 0x00000000;
     private const int SW_SHOWNORMAL = 1;
-    private const int RetryIntervalMs = 250;
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int MessageBoxW(IntPtr hWnd, string text, string caption, uint type);
@@ -57,8 +57,18 @@ internal static class Program {
             return 1;
         }
 
-        string driveRoot = Path.GetFullPath(GoogleDriveRoot).TrimEnd(Path.DirectorySeparatorChar)
-                         + Path.DirectorySeparatorChar;
+        LauncherConfig config;
+        try {
+            config = LauncherConfig.Load();
+        } catch (Exception ex) {
+            MessageBoxW(IntPtr.Zero,
+                $"Couldn't load config.json:\n\n{ex.Message}",
+                "Google Docs Launcher", 0x10);
+            return 3;
+        }
+
+        string driveRoot = Path.GetFullPath(config.GoogleDriveRoot).TrimEnd(Path.DirectorySeparatorChar)
+                           + Path.DirectorySeparatorChar;
 
         if (!file.StartsWith(driveRoot, StringComparison.OrdinalIgnoreCase)) {
             MessageBoxW(IntPtr.Zero,
@@ -73,14 +83,14 @@ internal static class Program {
                 return 0;
             }
 
-            return WaitForGoogleDrive(file);
+            return WaitForGoogleDrive(file, config.RetryIntervalMs);
         } catch (Exception ex) {
             ShowError(file, ex.Message);
             return 3;
         }
     }
 
-    private static int WaitForGoogleDrive(string file) {
+    private static int WaitForGoogleDrive(string file, int retryIntervalMs) {
         Application.EnableVisualStyles();
 
         using Form form = new() {
@@ -115,7 +125,7 @@ internal static class Program {
         bool succeeded = false;
 
         System.Windows.Forms.Timer timer = new() {
-            Interval = RetryIntervalMs
+            Interval = retryIntervalMs
         };
 
         timer.Tick += (_, _) => {
@@ -271,7 +281,8 @@ internal static class Program {
         [PreserveSig]
         int GetUIObjectOf(
             IntPtr hwndOwner, uint cidl,
-            [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] IntPtr[] apidl,
+            [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)]
+            IntPtr[] apidl,
             ref Guid riid, IntPtr rgfReserved, out IntPtr ppv);
 
         [PreserveSig]

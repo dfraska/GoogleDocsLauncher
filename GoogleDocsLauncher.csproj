@@ -8,4 +8,7 @@
         <Nullable>enable</Nullable>
         <ApplicationIcon>GoogleDocsLauncher.ico</ApplicationIcon>
     </PropertyGroup>
+    <ItemGroup>
+        <None Update="config.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/>
+    </ItemGroup>
 </Project>
